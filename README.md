@@ -1,7 +1,7 @@
 # pi-less-yolo
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![pi version](https://img.shields.io/badge/pi--coding--agent-0.61.0-blueviolet)](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent)
+[![pi version](https://img.shields.io/badge/pi--coding--agent-0.62.0-blueviolet)](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent)
 [![Base Image](https://img.shields.io/badge/base%20image-chainguard%2Fnode-F4835E?logo=docker)](https://images.chainguard.dev/directory/image/node/overview)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen?logo=dependabot)](https://github.com/cjermain/pi-less-yolo/blob/main/.github/dependabot.yml)
 
@@ -123,6 +123,41 @@ docker rmi pi-less-yolo:latest
 rm -rf ~/.pi/agent
 rm -rf /path/to/pi-less-yolo
 ```
+
+## Authentication
+
+Pi supports two ways to authenticate with a provider:
+
+**API key via environment variable** (recommended for scripted or non-interactive use):
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+mise run pi
+```
+
+The following environment variables are forwarded from your host into the container:
+
+| Provider | Environment Variable |
+|---|---|
+| Anthropic | `ANTHROPIC_API_KEY` |
+| OpenAI | `OPENAI_API_KEY` |
+| Azure OpenAI | `AZURE_OPENAI_API_KEY` |
+| Google Gemini | `GEMINI_API_KEY` |
+| Mistral | `MISTRAL_API_KEY` |
+| Groq | `GROQ_API_KEY` |
+| Cerebras | `CEREBRAS_API_KEY` |
+| xAI | `XAI_API_KEY` |
+| OpenRouter | `OPENROUTER_API_KEY` |
+| Vercel AI Gateway | `AI_GATEWAY_API_KEY` |
+| ZAI | `ZAI_API_KEY` |
+| OpenCode | `OPENCODE_API_KEY` |
+| Kimi | `KIMI_API_KEY` |
+| MiniMax | `MINIMAX_API_KEY` |
+| MiniMax (China) | `MINIMAX_CN_API_KEY` |
+
+Pi config variables (`PI_SKIP_VERSION_CHECK`, `PI_CACHE_RETENTION`, `PI_PACKAGE_DIR`) and editor variables (`VISUAL`, `EDITOR`) are also forwarded. No other host environment variables are passed into the container.
+
+**Auth file** (`~/.pi/agent/auth.json`): credentials stored here take priority over environment variables. Use `/login` inside pi to set this up interactively. See [pi's provider docs](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/providers.md) for details.
 
 ## Security model
 
