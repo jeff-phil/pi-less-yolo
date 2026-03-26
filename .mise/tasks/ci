@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Run all CI checks locally (lint + build + smoke test)"
+set -euo pipefail
+
+mise run lint
+mise run pi:build
+
+echo ""
+echo "Smoke test..."
+docker run --rm pi-less-yolo:latest --version

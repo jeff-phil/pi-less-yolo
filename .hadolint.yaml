@@ -1,0 +1,17 @@
+ignored:
+  # USER root is intentional — the runtime user is set via --user $(id -u):$(id -g)
+  # in the docker run invocation, not baked into the image.
+  - DL3002
+
+  # The base image is pinned by digest; pinning individual apk packages adds
+  # maintenance burden with minimal additional reproducibility benefit.
+  - DL3018
+
+  # RUN instructions are intentionally kept separate for readability and to
+  # preserve distinct layer boundaries (install tools, install pi, install mise/uv).
+  - DL3059
+
+  # The Chainguard Wolfi base uses busybox ash which does not support
+  # set -o pipefail. The curl installers are vendor-supplied scripts and cannot
+  # be restructured to avoid the pipe.
+  - DL4006

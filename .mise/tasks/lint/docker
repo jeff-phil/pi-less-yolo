@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Run hadolint on the Dockerfile"
+set -euo pipefail
+
+hadolint Dockerfile

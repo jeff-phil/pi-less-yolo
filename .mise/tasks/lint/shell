@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Run ShellCheck on all scripts in tasks/"
+set -euo pipefail
+
+find tasks .mise/tasks -type f -executable -exec shellcheck -x {} +

@@ -12,7 +12,7 @@ RUN apk add --no-cache \
         tmux
 
 # Install pi globally
-RUN npm install -g @mariozechner/pi-coding-agent@${PI_VERSION}
+RUN npm install -g "@mariozechner/pi-coding-agent@${PI_VERSION}"
 
 # Install mise and uv
 RUN curl -fsSL https://mise.run \

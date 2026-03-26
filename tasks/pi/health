@@ -77,8 +77,10 @@ done
 
 # --- ~/.pi/agent ------------------------------------------------------------
 if [[ -d "${HOME}/.pi/agent" ]]; then
+  # shellcheck disable=SC2088
   pass "~/.pi/agent exists"
 else
+  # shellcheck disable=SC2088
   warn "~/.pi/agent does not exist — it will be created on first run"
 fi
 

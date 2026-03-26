@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Pull the latest changes from git (tasks go live immediately, no reinstall needed)"
+set -euo pipefail
+
+cd "${MISE_PROJECT_ROOT}"
+git pull
+
+echo ""
+echo "Updated. Tasks are live immediately — no reinstall needed."
+echo ""
+echo "If the Dockerfile changed, rebuild the image:"
+echo "  mise run pi:build"
+echo ""

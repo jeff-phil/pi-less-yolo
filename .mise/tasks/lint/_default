@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Run all linters"
+set -euo pipefail
+
+mise run lint:shell
+mise run lint:docker
