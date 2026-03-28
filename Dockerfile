@@ -1,4 +1,4 @@
-ARG PI_VERSION=0.62.0
+ARG PI_VERSION=0.63.1
 
 FROM cgr.dev/chainguard/node:latest-dev@sha256:4ab907c3dccb83ebfbf2270543da99e0241ad2439d03d9ac0f69fe18497eb64a
 
