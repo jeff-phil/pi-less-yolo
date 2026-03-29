@@ -175,6 +175,16 @@ Mounting the directory at its real path (rather than a fixed `/workspace`) means
 
 The agent cannot reach other directories on your host. It can make arbitrary network requests and execute any command available inside the container image.
 
+### Pi packages
+
+Pi packages installed inside the container (`pi install npm:...`, `pi install git:...`)
+are written to `~/.pi/agent/npm/` and `~/.pi/agent/git/` and loaded as extensions on
+every subsequent run. A prompt-injected install persists to the host and survives the
+session.
+
+> **Accepted risk.** Audit installed packages with `pi list` and review
+> `~/.pi/agent/git/` and `~/.pi/agent/npm/` periodically.
+
 ### Git identity
 
 If `~/.gitconfig` exists on the host it is mounted read-only at startup, so the agent can make `git commit` with your correct author identity. Opt out by setting `PI_NO_GITCONFIG=1`.
