@@ -62,12 +62,8 @@ done
 
 [ -t 0 ] && [ -t 1 ] && DOCKER_FLAGS+=("--tty")
 
-# Git identity: mount ~/.gitconfig read-only so the agent can commit with the
-# correct author identity. Opt out by setting PI_NO_GITCONFIG=1.
-#
-# Note: credential helpers (e.g. osxkeychain, libsecret) referenced in
-# ~/.gitconfig will not be available inside the container and will fail
-# gracefully — git falls back to prompting for credentials.
+# Git identity: mount ~/.gitconfig read-only. Opt out with PI_NO_GITCONFIG=1.
+# Credential helpers (e.g. osxkeychain) are unavailable; git falls back to prompting.
 if [[ -z "${PI_NO_GITCONFIG:-}" && -f "${HOME}/.gitconfig" ]]; then
   DOCKER_FLAGS+=("--volume" "${HOME}/.gitconfig:/home/piuser/.gitconfig:ro")
 fi
