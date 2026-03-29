@@ -11,7 +11,7 @@ Dockerfile, and a CI smoke test.
 
 | Path | Role |
 |---|---|
-| `Dockerfile` | Single-stage Chainguard node image; installs curl, git, tmux, mise, uv, Python, and pi |
+| `Dockerfile` | Single-stage Chainguard node image; installs curl, git, tmux, mise, uv, Python, and pi. Entrypoint synthesises a `/etc/passwd` entry for the runtime UID so tools like SSH can resolve the user. |
 | `tasks/pi/_common` | Sourced (not executed) by all pi tasks; defines `DOCKER_FLAGS` (security options, volume mounts, env-var forwarding) |
 | `tasks/pi/_default` | `mise run pi` — launches the agent in the container |
 | `tasks/pi/build` | `mise run pi:build` — builds the Docker image |
@@ -71,7 +71,7 @@ mise run ci      # lint + docker build + smoke test
 - Docker security flags (`--cap-drop=ALL`, `--security-opt=no-new-privileges`, `--user $(id -u):$(id -g)`) are non-negotiable. Do not weaken them.
 - `--network=host` appears only in `pi:build` on Linux (DNS workaround). It must not appear in runtime `DOCKER_FLAGS`.
 - When adding a new provider API key: add it to the `PI_ENV_VARS` array in `tasks/pi/_common` **and** the auth table in `README.md`.
-- `PI_NO_GITCONFIG=1` suppresses the automatic `~/.gitconfig` read-only mount. `PI_SSH_AGENT=1` enables SSH agent socket forwarding. Both are host-side control variables consumed by `_common` before `docker run`; they do not go in `PI_ENV_VARS` and are not forwarded into the container.
+- `PI_NO_GITCONFIG=1` suppresses the automatic `~/.gitconfig` read-only mount. `PI_SSH_AGENT=1` enables SSH agent socket forwarding and also mounts `~/.ssh/known_hosts` and `~/.ssh/config` read-only. Both are host-side control variables consumed by `_common` before `docker run`; they do not go in `PI_ENV_VARS` and are not forwarded into the container.
 - Use `perl -pi -e` for in-place file edits (cross-platform; avoids `sed -i` / `sed -i ''` incompatibility between Linux and macOS).
 
 ## Automated dependency updates

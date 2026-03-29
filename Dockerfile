@@ -2,10 +2,7 @@ ARG PI_VERSION=0.63.1
 
 FROM cgr.dev/chainguard/node:latest-dev@sha256:4ab907c3dccb83ebfbf2270543da99e0241ad2439d03d9ac0f69fe18497eb64a
 
-# Install git, tmux, curl, ca-certificates, and openssh-client via Wolfi's apk.
-# openssh-client provides the ssh binary (required for git over SSH when using
-# agent forwarding via PI_SSH_AGENT=1) and ssh-add (for inspecting the agent).
-# Node.js (LTS) and npm are pre-installed in the base image.
+# openssh-client: ssh binary for git-over-SSH (PI_SSH_AGENT=1) and ssh-add.
 USER root
 RUN apk add --no-cache \
         curl \
@@ -29,15 +26,41 @@ RUN uv python install 3.14.3 \
 # Install pi globally
 RUN npm install -g "@mariozechner/pi-coding-agent@${PI_VERSION}"
 
-# Create a world-writable home directory so any runtime UID (supplied via
-# `docker run --user $(id -u):$(id -g)`) can write here even without a
-# corresponding /etc/passwd entry. The sticky bit (1777, same as /tmp)
-# prevents other UIDs from deleting each other's files.
-RUN mkdir -p /home/piuser && chmod 1777 /home/piuser
+# /home/piuser: world-writable (1777) so any runtime UID can write here.
+# /home/piuser/.ssh: root-owned 755; SSH accepts it and the runtime user can
+#   read mounts inside it (700 would block a non-matching UID).
+# /etc/passwd: world-writable so the entrypoint can add the runtime UID.
+#   SSH calls getpwuid(3) and hard-fails without a passwd entry. Safe here
+#   because --cap-drop=ALL and --no-new-privileges block privilege escalation.
+RUN mkdir -p /home/piuser /home/piuser/.ssh \
+    && chmod 1777 /home/piuser \
+    && chmod 755 /home/piuser/.ssh \
+    && chmod a+w /etc/passwd \
+    && touch /home/piuser/.ssh/known_hosts \
+    && chmod 666 /home/piuser/.ssh/known_hosts
 
-# Point HOME at the shared dir above. pi's own config path is overridden at
-# runtime via PI_CODING_AGENT_DIR, so this HOME is only a fallback for any
-# other tooling that needs a writable home (e.g. git credential helpers).
 ENV HOME=/home/piuser
 
-ENTRYPOINT ["pi"]
+# Register the runtime UID in /etc/passwd before starting pi.
+# SSH calls getpwuid(3) and hard-fails without an entry; nss_wrapper is
+# unavailable in Wolfi so we append directly.
+RUN <<'EOF'
+cat > /usr/local/bin/entrypoint.sh << 'ENTRYPOINT'
+#!/bin/sh
+set -e
+
+if ! grep -q "^[^:]*:[^:]*:$(id -u):" /etc/passwd; then
+    printf 'piuser:x:%d:%d:piuser:%s:/bin/sh\n' \
+        "$(id -u)" "$(id -g)" "${HOME}" >> /etc/passwd
+fi
+
+# Pass through to a shell when invoked via `pi:shell`; otherwise run pi.
+case "${1:-}" in
+    bash|sh) exec "$@" ;;
+    *) exec pi "$@" ;;
+esac
+ENTRYPOINT
+chmod +x /usr/local/bin/entrypoint.sh
+EOF
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

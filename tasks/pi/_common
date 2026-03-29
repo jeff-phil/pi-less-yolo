@@ -72,17 +72,20 @@ if [[ -z "${PI_NO_GITCONFIG:-}" && -f "${HOME}/.gitconfig" ]]; then
   DOCKER_FLAGS+=("--volume" "${HOME}/.gitconfig:/home/piuser/.gitconfig:ro")
 fi
 
-# SSH agent forwarding: forward the host SSH agent socket into the container
-# so the agent can use SSH-based git remotes without private keys ever
-# entering the container. Opt in by setting PI_SSH_AGENT=1.
-#
-# Security note: a compromised container can authenticate as you to any SSH
-# server your agent has loaded. Review loaded keys with `ssh-add -l` before
-# enabling. This does not weaken the existing --cap-drop / --user constraints.
-#
-# On macOS, Docker Desktop exposes the host SSH agent via a fixed path inside
-# the VM. On Linux the live socket is bind-mounted directly.
+# SSH agent forwarding. Opt in by setting PI_SSH_AGENT=1.
+# Also mounts ~/.ssh/known_hosts and ~/.ssh/config read-only.
+# Security: a compromised container can authenticate as you to any server your
+# agent has loaded. If ~/.ssh/config contains ForwardAgent yes, that forwarding
+# cascades to any server the container connects to. Review loaded keys with
+# `ssh-add -l` before enabling.
 if [[ -n "${PI_SSH_AGENT:-}" ]]; then
+  if [[ -f "${HOME}/.ssh/known_hosts" ]]; then
+    DOCKER_FLAGS+=("--volume" "${HOME}/.ssh/known_hosts:/home/piuser/.ssh/known_hosts:ro")
+  fi
+  if [[ -f "${HOME}/.ssh/config" ]]; then
+    DOCKER_FLAGS+=("--volume" "${HOME}/.ssh/config:/home/piuser/.ssh/config:ro")
+  fi
+
   if [[ "$(uname -s)" == "Darwin" ]]; then
     DOCKER_FLAGS+=(
       "--mount" "type=bind,src=/run/host-services/ssh-auth.sock,target=/run/host-services/ssh-auth.sock"
