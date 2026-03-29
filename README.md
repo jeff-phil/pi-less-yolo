@@ -168,6 +168,7 @@ The container is launched with:
 - `--user $(id -u):$(id -g)` — files created inside the container are owned by your host user
 - `--cap-drop=ALL` — all Linux capabilities dropped
 - `--security-opt=no-new-privileges` — prevents privilege escalation via setuid binaries
+- `--ipc=none` — isolated IPC namespace; no shared memory with other containers
 - `--volume $(pwd):$(pwd)` — your current directory is mounted at its real host path; the container's working directory is set to match
 - `--volume ~/.pi/agent:/pi-agent` — pi config, credentials, and sessions
 
