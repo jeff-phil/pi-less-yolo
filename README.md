@@ -61,6 +61,27 @@ mise run pi
 
 Your current directory is mounted at its real path inside the container (e.g. `/home/you/my-project`). Pi uses this path for session tracking, so each project gets its own session history. Pi's config, sessions, and credentials are mounted from `~/.pi/agent`. Files written by the agent are owned by your user on the host.
 
+### Non-interactive use
+
+Pi's `-p` flag runs a single prompt and exits. All arguments after `--` are passed through to pi:
+
+```bash
+mise run pi -- -p "summarize this repo"
+```
+
+Piped stdin is also supported:
+
+```bash
+cat README.md | mise run pi -- -p "summarize this"
+git diff | mise run pi -- -p "write a commit message for this diff"
+```
+
+This works with `pi:readonly` too:
+
+```bash
+cat src/auth.ts | mise run pi:readonly -- -p "review for security issues"
+```
+
 ### Alias (optional)
 
 To type `pi` instead of `mise run pi`, add to your shell profile:
