@@ -12,6 +12,6 @@ ignored:
   - DL3059
 
   # The Chainguard Wolfi base uses busybox ash which does not support
-  # set -o pipefail. The curl installers are vendor-supplied scripts and cannot
-  # be restructured to avoid the pipe.
+  # set -o pipefail. The uv curl installer is a vendor-supplied script that
+  # cannot be restructured to avoid the pipe.
   - DL4006

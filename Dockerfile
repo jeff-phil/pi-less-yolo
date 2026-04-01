@@ -9,11 +9,20 @@ RUN apk add --no-cache \
         openssh-client \
         tmux
 
-# Install mise and uv
-RUN curl -fsSL https://mise.run \
-        | MISE_VERSION=2026.3.17 MISE_INSTALL_PATH=/usr/local/bin/mise sh \
-    && curl -fsSL https://astral.sh/uv/install.sh \
-        | UV_VERSION=0.11.2 UV_INSTALL_DIR=/usr/local/bin sh
+# Install mise (GPG-verified via mise-release.asc) and uv.
+RUN --mount=type=bind,source=mise-release.asc,target=/tmp/mise-release.asc <<'EOF'
+set -e
+apk add --no-cache gpg gpg-agent
+gpg --import /tmp/mise-release.asc
+curl -fsSL https://mise.jdx.dev/install.sh.sig -o /tmp/mise-install.sh.sig
+gpg --decrypt /tmp/mise-install.sh.sig > /tmp/mise-install.sh
+MISE_VERSION=2026.3.17 MISE_INSTALL_PATH=/usr/local/bin/mise sh /tmp/mise-install.sh
+rm /tmp/mise-install.sh.sig /tmp/mise-install.sh
+apk del gpg gpg-agent
+
+curl -fsSL https://astral.sh/uv/install.sh \
+    | UV_VERSION=0.11.2 UV_INSTALL_DIR=/usr/local/bin sh
+EOF
 
 ENV UV_PYTHON_INSTALL_DIR=/usr/local/share/uv/python
 
