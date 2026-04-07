@@ -77,8 +77,14 @@ done
 
 # --- ~/.pi/agent ------------------------------------------------------------
 if [[ -d "${HOME}/.pi/agent" ]]; then
-  # shellcheck disable=SC2088
-  pass "~/.pi/agent exists"
+  _agent_owner=$(stat -c '%u' "${HOME}/.pi/agent" 2>/dev/null || stat -f '%u' "${HOME}/.pi/agent" 2>/dev/null)
+  if [[ "${_agent_owner}" == "$(id -u)" ]]; then
+    # shellcheck disable=SC2088
+    pass "~/.pi/agent exists and is owned by current user"
+  else
+    # shellcheck disable=SC2088
+    fail "~/.pi/agent is owned by UID ${_agent_owner}, not $(id -u) — run: sudo chown -R \"\$(id -u):\$(id -g)\" ~/.pi/agent"
+  fi
 else
   # shellcheck disable=SC2088
   warn "~/.pi/agent does not exist — it will be created on first run"

@@ -5,6 +5,10 @@ PI_IMAGE="pi-less-yolo:latest"
 
 docker image inspect "${PI_IMAGE}" > /dev/null 2>&1 || mise run pi:build
 
+# Pre-create so Docker doesn't auto-create it as root (breaking writes by the
+# container's non-root UID).
+mkdir -p "${HOME}/.pi/agent"
+
 # Permissions:
 #   --user $(id -u):$(id -g)   files created in /workspace are owned by the
 #                               calling user on the host, not root.
