@@ -323,7 +323,7 @@ Most Linux distributions provide podman with a `docker` compatibility alias. If 
 alias docker=podman
 
 # Or symlink (system-wide, requires root):
-sudo ln -s $(which podman) /usr/local/bin/docker
+sudo ln -s "$(which podman)" /usr/local/bin/docker
 ```
 
 All tasks (`pi`, `pi:readonly`, `pi:build`, `pi:shell`) work identically with podman.
