@@ -6,11 +6,13 @@ CONF_D="${XDG_CONFIG_HOME:-${HOME}/.config}/mise/conf.d"
 CONF_FILE="${CONF_D}/pi-less-yolo.toml"
 TASKS_PATH="${MISE_PROJECT_ROOT}/tasks"
 
-# Verify docker is available (daemon check is left to pi:health)
-if ! command -v docker > /dev/null 2>&1; then
-  echo "error: docker not found — install Docker before installing pi-less-yolo" >&2
+# Verify container runtime is available (daemon check is left to pi:health)
+_runtime="${PI_CONTAINER_RUNTIME:-docker}"
+if ! command -v "${_runtime}" > /dev/null 2>&1; then
+  echo "error: ${_runtime} not found — install Docker or Podman before installing pi-less-yolo" >&2
   exit 1
 fi
+unset _runtime
 
 mkdir -p "${CONF_D}"
 

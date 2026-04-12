@@ -24,6 +24,16 @@ echo "pi-less-yolo health check"
 echo "========================="
 echo ""
 
+# --- detect container runtime -----------------------------------------------
+if [[ -n "${PI_CONTAINER_RUNTIME:-}" ]]; then
+  DOCKER_CMD="${PI_CONTAINER_RUNTIME}"
+else
+  DOCKER_CMD="docker"
+  if docker --version 2>&1 | grep -q podman; then
+    DOCKER_CMD="podman"
+  fi
+fi
+
 # --- mise version -----------------------------------------------------------
 MISE_VER=$(mise --version 2>/dev/null | awk '{print $1}')
 MISE_MIN="2024.12.0"
@@ -33,22 +43,22 @@ else
   fail "mise ${MISE_VER} is below minimum ${MISE_MIN} — run: mise self-update"
 fi
 
-# --- docker binary ----------------------------------------------------------
-if command -v docker > /dev/null 2>&1; then
-  pass "docker available"
+# --- container runtime binary -----------------------------------------------
+if command -v "${DOCKER_CMD}" > /dev/null 2>&1; then
+  pass "${DOCKER_CMD} available"
 else
-  fail "docker not found — install Docker: https://docs.docker.com/get-docker/"
+  fail "${DOCKER_CMD} not found — install Docker: https://docs.docker.com/get-docker/ or Podman: https://podman.io/getting-started/installation"
 fi
 
-# --- docker daemon ----------------------------------------------------------
-if docker info > /dev/null 2>&1; then
-  pass "docker daemon running"
+# --- container runtime daemon -----------------------------------------------
+if "${DOCKER_CMD}" info > /dev/null 2>&1; then
+  pass "${DOCKER_CMD} daemon running"
 else
-  fail "docker daemon not running — start Docker Desktop or dockerd"
+  fail "${DOCKER_CMD} daemon not running — start Docker Desktop, dockerd, or the Podman socket"
 fi
 
 # --- image ------------------------------------------------------------------
-if docker image inspect "pi-less-yolo:latest" > /dev/null 2>&1; then
+if "${DOCKER_CMD}" image inspect "pi-less-yolo:latest" > /dev/null 2>&1; then
   pass "image pi-less-yolo:latest exists"
 else
   warn "image pi-less-yolo:latest not found — run: mise run pi:build"

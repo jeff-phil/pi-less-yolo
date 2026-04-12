@@ -4,14 +4,15 @@ set -euo pipefail
 
 PI_IMAGE="pi-less-yolo:latest"
 DOCKERFILE="${MISE_TASK_DIR}/../../Dockerfile"
+DOCKER_CMD="${PI_CONTAINER_RUNTIME:-docker}"
 
-docker image inspect "${PI_IMAGE}" > /dev/null 2>&1 || {
+"${DOCKER_CMD}" image inspect "${PI_IMAGE}" > /dev/null 2>&1 || {
   echo "error: image not found — run: mise run pi:build" >&2
   exit 1
 }
 
 CURRENT=$(perl -ne 'print $1 if /pi-coding-agent@([\d.]+)/' "${DOCKERFILE}")
-LATEST=$(docker run --rm --entrypoint npm "${PI_IMAGE}" view @mariozechner/pi-coding-agent version)
+LATEST=$("${DOCKER_CMD}" run --rm --entrypoint npm "${PI_IMAGE}" view @mariozechner/pi-coding-agent version)
 
 if [[ "${CURRENT}" == "${LATEST}" ]]; then
   echo "Already at latest pi version: ${CURRENT}"
