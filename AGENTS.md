@@ -70,7 +70,7 @@ mise run ci      # lint + docker build + smoke test
 - `tasks/pi/_docker_flags` is *sourced*, not executed — no shebang, not executable.
 - `#MISE raw=true` and `#MISE dir="{{cwd}}"` on `_default` and `shell` are intentional: they preserve raw terminal I/O and ensure the container's working directory matches the caller's. Do not remove them.
 - Docker security flags (`--cap-drop=ALL`, `--security-opt=no-new-privileges`, `--user $(id -u):$(id -g)`) are non-negotiable. Do not weaken them.
-- **Podman support:** `tasks/pi/_docker_flags` detects podman via `docker --version` output and adds `--userns=keep-id` to fix TTY ownership errors. Set `PI_CONTAINER_RUNTIME=podman` to skip detection and use podman explicitly.
+- **Podman support:** `tasks/pi/_docker_flags` detects podman via `docker --version` output (version string) and binary path (`readlink -f`); adds `--userns=keep-id` to fix TTY ownership errors. Shell aliases are not visible in non-interactive scripts; users need the `podman-docker` package, a symlink, or `PI_CONTAINER_RUNTIME=podman`.
 - `--network=host` appears in `pi:build` on Linux (DNS workaround) and in runtime `DOCKER_FLAGS` when `PI_LOCAL_MODELS=1` is set. It must not appear unconditionally in runtime `DOCKER_FLAGS`.
 - When adding a new provider API key: add it to the `PI_ENV_VARS` array in `tasks/pi/_docker_flags` **and** the auth table in `README.md`.
 - Host-side control variables consumed by `_docker_flags`; not forwarded into the container via `PI_ENV_VARS`:

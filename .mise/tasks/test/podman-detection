@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#MISE description="Test _docker_flags detects podman when docker resolves to the podman binary"
+set -euo pipefail
+
+if ! command -v podman &>/dev/null; then
+  echo "  SKIP podman not installed"
+  exit 0
+fi
+
+if ! podman image inspect pi-less-yolo:latest &>/dev/null; then
+  echo "  SKIP pi-less-yolo:latest not in podman image store"
+  exit 0
+fi
+
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
+
+# Simulate podman aliased as docker.  When podman is invoked as "docker" it
+# outputs "docker version X.Y.Z", so grep-based detection cannot find "podman".
+ln -s "$(command -v podman)" "$tmpdir/docker"
+
+result=$(PATH="$tmpdir:$PATH" bash << 'SHELL'
+set -euo pipefail
+unset PI_CONTAINER_RUNTIME
+source tasks/pi/_docker_flags
+echo "$DOCKER_CMD"
+SHELL
+)
+
+[ "$result" = "podman" ] || { echo "FAIL: expected DOCKER_CMD=podman, got '$result'"; exit 1; }
+echo "  OK detected podman when docker is aliased to the podman binary"

@@ -31,7 +31,7 @@ If you use [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Aider,
 ## Prerequisites
 
 - [mise](https://mise.jdx.dev/installing-mise.html) >= 2024.12.0
-- [Docker](https://docs.docker.com/get-docker/) (Desktop on macOS, Engine on Linux) or [Podman](https://podman.io/getting-started/installation) (via `PI_CONTAINER_RUNTIME=podman` or aliased as `docker`)
+- [Docker](https://docs.docker.com/get-docker/) (Desktop on macOS, Engine on Linux) or [Podman](https://podman.io/getting-started/installation) (via `PI_CONTAINER_RUNTIME=podman`, the `podman-docker` package, or a symlink)
 - git
 
 ## Install
@@ -312,25 +312,41 @@ To fix this permanently instead:
 
 ## Podman support
 
-`pi-less-yolo` works with [Podman](https://podman.io) as a drop-in Docker replacement. Podman is automatically detected when the `docker` command is aliased or symlinked to `podman`.
+`pi-less-yolo` works with [Podman](https://podman.io) as a drop-in Docker replacement.
+Podman is automatically detected when the `docker` command in PATH resolves to the
+podman binary — either via a compatibility wrapper or a symlink.
 
-The runtime adds `--userns=keep-id` when podman is detected, which properly maps user namespaces and avoids TTY ownership errors.
+The runtime adds `--userns=keep-id` when podman is detected, which properly maps user
+namespaces and avoids TTY ownership errors.
 
-Set `PI_CONTAINER_RUNTIME=podman` to use podman explicitly without an alias:
+Set `PI_CONTAINER_RUNTIME=podman` to use podman explicitly without relying on detection:
 
 ```bash
 PI_CONTAINER_RUNTIME=podman mise run pi
 ```
 
-Alternatively, most Linux distributions provide a `docker` compatibility alias. If you don't have one:
+If you don't have a `docker` compatibility shim, the `podman-docker` package is the
+recommended way to provide one:
 
 ```bash
-# Session alias:
-alias docker=podman
+# Fedora/RHEL:
+sudo dnf install podman-docker
 
-# Or symlink (system-wide, requires root):
+# Ubuntu/Debian:
+sudo apt install podman-docker
+```
+
+Or create a symlink manually (no package required):
+
+```bash
 sudo ln -s "$(which podman)" /usr/local/bin/docker
 ```
+
+> **Note:** Shell aliases (`alias docker=podman`) are only expanded in interactive
+> shells. Mise tasks run as non-interactive bash subprocesses and cannot see aliases
+> defined in your shell profile — see the
+> [Bash manual on Aliases](https://www.gnu.org/software/bash/manual/bash.html#Aliases).
+> Use `PI_CONTAINER_RUNTIME=podman`, the `podman-docker` package, or a symlink instead.
 
 All tasks (`pi`, `pi:readonly`, `pi:build`, `pi:shell`) work identically with podman.
 

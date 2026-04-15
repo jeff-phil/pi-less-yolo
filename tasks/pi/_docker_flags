@@ -3,12 +3,16 @@
 
 PI_IMAGE="pi-less-yolo:latest"
 
-# PI_CONTAINER_RUNTIME overrides; otherwise detect by grepping docker --version output.
+# PI_CONTAINER_RUNTIME overrides; otherwise detect podman via version output or binary path.
+# || true: some docker-as-podman shims exit non-zero, which would abort under pipefail.
+# readlink: when podman is symlinked as "docker", it reports "docker version X" not "podman version X".
 if [[ -n "${PI_CONTAINER_RUNTIME:-}" ]]; then
   DOCKER_CMD="${PI_CONTAINER_RUNTIME}"
 else
   DOCKER_CMD="docker"
-  if docker --version 2>&1 | grep -q podman; then
+  detected_version=$(docker --version 2>&1 || true)
+  docker_realpath=$(readlink -f "$(command -v docker || true)" 2>/dev/null || true)
+  if [[ "${detected_version}" == *podman* ]] || [[ "${docker_realpath}" == *podman* ]]; then
     DOCKER_CMD="podman"
   fi
 fi
