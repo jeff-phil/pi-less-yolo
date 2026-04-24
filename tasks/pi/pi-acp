@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#MISE description="Open a bash shell in the pi container with the same mounts as the pi task"
+#MISE raw=true
+#MISE dir="{{cwd}}"
+set -euo pipefail
+
+# shellcheck source=tasks/pi/_docker_flags
+source "$(dirname "$0")/_docker_flags"
+
+DOCKER_FLAGS+=("--interactive")
+[ -t 0 ] && [ -t 1 ] && DOCKER_FLAGS+=("--tty")
+
+# For pi-acp script to find instance with docker exec ...
+DOCKER_FLAGS+=("--name pi-acp")
+
+echo ${DOCKER_CMD} run ${DOCKER_FLAGS[@]} ${PI_IMAGE} zsh -ic 'pi-acp' >/tmp/d
+
+# This has 2 ways, 1) sending keys will allow ctrl+z bash shell in pi, but need to do extra exit of shell
+# 2) launch pi, and need to tmux to a shell as needed. exiting tmux closes docker session
+${DOCKER_CMD} run ${DOCKER_FLAGS[@]} ${PI_IMAGE} zsh -ic 'pi-acp'
