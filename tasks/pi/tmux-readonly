@@ -11,4 +11,4 @@ source "$(dirname "$0")/_docker_flags"
 DOCKER_FLAGS+=("--interactive")
 [ -t 0 ] && [ -t 1 ] && DOCKER_FLAGS+=("--tty")
 
-"${DOCKER_CMD}" run "${DOCKER_FLAGS[@]}" "${PI_IMAGE}" --tools read,grep,find,ls,fffind,ffgrep,cm,cymbal "$@"
+"${DOCKER_CMD}" run "${DOCKER_FLAGS[@]}" "${PI_IMAGE}" zsh -ic 'tmux new-session -s pi-readonly "pi --tools read,grep,find,ls,fffind,ffgrep,cm,cymbal"'

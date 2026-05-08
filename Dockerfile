@@ -40,16 +40,21 @@ RUN apk update && \
         emacs \
         && rm -rf /var/cache/apk/*
 
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
-        && mv /root/.local/bin/uv /usr/local/bin/uv \
-        && mv /root/.local/bin/uvx /usr/local/bin/uvx \
-        && chmod +x /usr/local/bin/uv /usr/local/bin/uvx
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+RUN ln -s /usr/local/bin/uv /usr/local/bin/uvx
 
 ENV UV_PYTHON_INSTALL_DIR=/usr/local/share/uv/python
+# This allows local <project>/.venv to be used in non-docker env for devel
+# and allow place for uv to store stuff.  Note: if this is causing orphaned
+# dirs all over, then can set to `UV_PROJECT_ENVIRONMENT=/pi-home/.venv-docker
+# but may cause a bit of lag as sync has to install stuff
+ENV UV_PROJECT_ENVIRONMENT=.venv-docker
+
 
 # Install Python via uv and expose it on PATH, with tools
 RUN uv python install 3.14.4 \
-      && ln -s "$(uv python find 3.14.4)" /usr/local/bin/python3
+      && ln -s "$(uv python find 3.14.4)" /usr/local/bin/python3 \
+      && ln -s "$(uv python find 3.14.4)" /usr/local/bin/python
 
 # Prepend extension binaries (host-mounted via /pi-agent). Security: binaries
 # here can shadow any command; no privilege escalation (--cap-drop=ALL,
@@ -74,12 +79,16 @@ RUN mkdir -p /home/piuser /home/piuser/.ssh \
     && touch /home/piuser/.ssh/known_hosts \
     && chmod 666 /home/piuser/.ssh/known_hosts 
 
+# Fix global npmrc from apk package if still set, removes warnings
 # .npmrc sets prefix=/pi-agent/npm-global so extensions persist across restarts,
 # and legacy-peer-deps=true in so that every pi package doesn't (re-)install
 # pi-coding-agent due to peerDependencies.
-RUN cat > /home/piuser/.npmrc << 'EOF'
+RUN << 'EOF'
+sed -i -E 's/^(globalignorefile|python)/;\1/' /usr/lib/node_modules/npm/npmrc
+cat > /home/piuser/.npmrc << 'NPMRC'
 prefix=/pi-agent/npm-global
 legacy-peer-deps=true
+NPMRC
 EOF
 
 RUN << 'EOF'
@@ -116,6 +125,17 @@ function zle-line-init {
 }
 zle -N zle-line-init
 
+notify() {
+    local msg="$1"
+    if [ -n "$TMUX" ]; then
+        # Inside tmux: use the tmux passthrough wrapper
+        printf '\033Ptmux;\033\033]9;%s\a\033\\' "$msg" >/dev/pts/1
+    else
+        # Outside tmux: print directly
+        printf '\033]9;%s\a' "$msg"
+    fi
+}
+
 PROMPT='[%{$fg[cyan]%}${MODE}%{$reset_color%}] %~ %# '
 
 if [ -f "$PI_CODING_AGENT_DIR/.env" ]; then
@@ -123,6 +143,19 @@ if [ -f "$PI_CODING_AGENT_DIR/.env" ]; then
 fi
 
 ZSHRC
+
+cat > /home/piuser/.bashrc << 'BASHRC'
+notify() {
+    local msg="$1"
+    if [ -n "$TMUX" ]; then
+        # Inside tmux: use the tmux passthrough wrapper
+        printf '\033Ptmux;\033\033]9;%s\a\033\\' "$msg" >/dev/pts/1
+    else
+        # Outside tmux: print directly
+        printf '\033]9;%s\a' "$msg"
+    fi
+}
+BASHRC
 
 cat > /home/piuser/.vimrc << 'VIMRC'
 let mapleader=","
@@ -174,7 +207,7 @@ fi
 # without rebuilding the container, since will be in users mounted ~/.pi dir
 if ! [ `which pi` ]; then
     echo "Please wait while Pi is installed to your host ~/.pi/agent/bin directory..."
-    npm install -g @mariozechner/pi-coding-agent
+    npm install -g @earendil-works/pi-coding-agent
 fi
 
 # Pass through to a shell when invoked via `pi:shell`; otherwise run pi.
@@ -185,5 +218,7 @@ esac
 ENTRYPOINT
 chmod +x /usr/local/bin/entrypoint.sh
 EOF
+
+#RUN rm -rf /app/*
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
