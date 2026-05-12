@@ -38,6 +38,8 @@ RUN apk update && \
         ripgrep \
         vim \
         emacs \
+        glow \
+        fzf \
         && rm -rf /var/cache/apk/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -69,15 +71,14 @@ ENV HOME=/home/piuser
 # /etc/passwd: world-writable so the entrypoint can add the runtime UID.
 #   SSH calls getpwuid(3) and hard-fails without a passwd entry. Safe here
 #   because --cap-drop=ALL and --no-new-privileges block privilege escalation.
-RUN mkdir -p /home/piuser /home/piuser/.ssh \
-             /home/piuser/.pi \
+RUN adduser piuser /home/piuser -u 501 -s /bin/zsh -D \
+    && mkdir -p /home/piuser/.ssh /home/piuser/.pi \
     && ln -s /pi-agent /home/piuser/.pi/agent \
-    && ln -s /pi-agent/agent-skills-global /home/piuser/.agents \
-    && chmod 1777 /home/piuser \
-    && chmod 755 /home/piuser/.ssh \
+    && chmod 1700 /home/piuser \
+    && chmod 700 /home/piuser/.ssh \
     && chmod a+w /etc/passwd \
     && touch /home/piuser/.ssh/known_hosts \
-    && chmod 666 /home/piuser/.ssh/known_hosts 
+    && chmod 644 /home/piuser/.ssh/known_hosts 
 
 # Fix global npmrc from apk package if still set, removes warnings
 # .npmrc sets prefix=/pi-agent/npm-global so extensions persist across restarts,
@@ -125,36 +126,20 @@ function zle-line-init {
 }
 zle -N zle-line-init
 
-notify() {
-    local msg="$1"
-    if [ -n "$TMUX" ]; then
-        # Inside tmux: use the tmux passthrough wrapper
-        printf '\033Ptmux;\033\033]9;%s\a\033\\' "$msg" >/dev/pts/1
-    else
-        # Outside tmux: print directly
-        printf '\033]9;%s\a' "$msg"
-    fi
-}
-
 PROMPT='[%{$fg[cyan]%}${MODE}%{$reset_color%}] %~ %# '
 
-if [ -f "$PI_CODING_AGENT_DIR/.env" ]; then
-  . "$PI_CODING_AGENT_DIR/.env"
+if [ -f "$PI_CODING_AGENT_DIR/.pirc" ]; then
+  . "$PI_CODING_AGENT_DIR/.pirc"
 fi
 
 ZSHRC
 
 cat > /home/piuser/.bashrc << 'BASHRC'
-notify() {
-    local msg="$1"
-    if [ -n "$TMUX" ]; then
-        # Inside tmux: use the tmux passthrough wrapper
-        printf '\033Ptmux;\033\033]9;%s\a\033\\' "$msg" >/dev/pts/1
-    else
-        # Outside tmux: print directly
-        printf '\033]9;%s\a' "$msg"
-    fi
-}
+
+if [ -f "$PI_CODING_AGENT_DIR/.pirc" ]; then
+  . "$PI_CODING_AGENT_DIR/.pirc"
+fi
+
 BASHRC
 
 cat > /home/piuser/.vimrc << 'VIMRC'
@@ -180,14 +165,18 @@ uv tool install ruff
 uv tool install ty
 uv tool install skills-ref
 uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
-cargo install htmlq ekphos
-mv /home/piuser/.cargo/bin/* /usr/local/bin
-rm -rf /home/piuser/.cache /home/piuser/go/pkg /home/piuser/.cargo
+cargo install htmlq dedoc
+mv /home/piuser/.cargo/bin/* /usr/local/bin 2>/dev/null
+rm -rf /home/piuser/.cache /home/piuser/go/pkg /home/piuser/.cargo 2>/dev/null
 npm install playwright && npx playwright install chromium --only-shell
 find . -name '.git' -type d -prune -exec rm -rf {} \;
 chown -R 501 /home/piuser
+chmod +x /home/piuser/.zshrc /home/piuser/.bashrc
 rm -rf /root
 mkdir /root
+rm -rf /app
+mkdir /app
+chown 501 /app
 EOF
 
 # Register the runtime UID in /etc/passwd before starting pi.
