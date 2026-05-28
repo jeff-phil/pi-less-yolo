@@ -207,7 +207,7 @@ Use it for untrusted or sensitive codebases.
 ### Pi packages
 
 Pi packages installed inside the container (`pi install npm:...`, `pi install git:...`)
-are written to `~/.pi/agent/npm-global/lib/node_modules/` and `~/.pi/agent/git/` and loaded as extensions on
+are written to `~/.pi/agent/npm/lib/node_modules/` and `~/.pi/agent/git/` and loaded as extensions on
 every subsequent run. A prompt-injected install persists to the host and survives the
 session.
 

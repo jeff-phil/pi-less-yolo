@@ -10,5 +10,5 @@ source "$(dirname "$0")/_docker_flags"
 DOCKER_FLAGS+=("--interactive")
 [ -t 0 ] && [ -t 1 ] && DOCKER_FLAGS+=("--tty")
 
-# Will install pi-acp, to /pi-agent/npm-global if not there and/or starts pi-acp
+# Will install pi-acp, to /pi-agent/npm if not there and/or starts pi-acp
 "${DOCKER_CMD}" run "${DOCKER_FLAGS[@]}" "${PI_IMAGE}" sh -c 'if ! [ `which pi-acp` ]; then npm install -g pi-acp && pi-acp; else pi-acp; fi'

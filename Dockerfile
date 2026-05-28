@@ -21,6 +21,7 @@ RUN apk update && \
         libffi-dev \
         sqlite sqlite-libs py3-sqlite-utils \
         jq \
+        grep \
         file \
         fd \
         util-linux-misc \
@@ -33,6 +34,7 @@ RUN apk update && \
         bun \
         gh \
         snyk-cli \
+        inotify-tools \
         delta \
         less \
         ripgrep \
@@ -40,6 +42,8 @@ RUN apk update && \
         emacs \
         glow \
         fzf \
+        netcat-openbsd \
+        eslint \
         && rm -rf /var/cache/apk/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -60,8 +64,8 @@ RUN uv python install 3.14.4 \
 
 # Prepend extension binaries (host-mounted via /pi-agent). Security: binaries
 # here can shadow any command; no privilege escalation (--cap-drop=ALL,
-# --no-new-privileges), but review ~/.pi/agent/npm-global/bin/ after installs.
-ENV PATH="/pi-agent/npm-global/bin:${PATH}"
+# --no-new-privileges), but review ~/.pi/agent/npm/bin/ after installs.
+ENV PATH="/pi-agent/npm/bin:${PATH}"
 
 ENV HOME=/home/piuser
 
@@ -81,13 +85,13 @@ RUN adduser piuser /home/piuser -u 501 -s /bin/zsh -D \
     && chmod 644 /home/piuser/.ssh/known_hosts 
 
 # Fix global npmrc from apk package if still set, removes warnings
-# .npmrc sets prefix=/pi-agent/npm-global so extensions persist across restarts,
+# .npmrc sets prefix=/pi-agent/npm so extensions persist across restarts,
 # and legacy-peer-deps=true in so that every pi package doesn't (re-)install
 # pi-coding-agent due to peerDependencies.
 RUN << 'EOF'
 sed -i -E 's/^(globalignorefile|python)/;\1/' /usr/lib/node_modules/npm/npmrc
 cat > /home/piuser/.npmrc << 'NPMRC'
-prefix=/pi-agent/npm-global
+prefix=/pi-agent/npm
 legacy-peer-deps=true
 NPMRC
 EOF
@@ -101,6 +105,9 @@ alias lessx="/usr/share/vim/vim92/macros/less.sh"
 
 export EDITOR=vim
 export VISUAL=emacs
+
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
 
 export PATH=$PATH:/home/piuser/go/bin:/home/piuser/.local/bin:
 
@@ -165,10 +172,10 @@ uv tool install ruff
 uv tool install ty
 uv tool install skills-ref
 uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
-cargo install htmlq dedoc
+cargo install htmlq
 mv /home/piuser/.cargo/bin/* /usr/local/bin 2>/dev/null
 rm -rf /home/piuser/.cache /home/piuser/go/pkg /home/piuser/.cargo 2>/dev/null
-npm install playwright && npx playwright install chromium --only-shell
+#npm install playwright && npx playwright install chromium --only-shell
 find . -name '.git' -type d -prune -exec rm -rf {} \;
 chown -R 501 /home/piuser
 chmod +x /home/piuser/.zshrc /home/piuser/.bashrc
