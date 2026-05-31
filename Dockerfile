@@ -21,6 +21,7 @@ RUN apk update && \
         libffi-dev \
         sqlite sqlite-libs py3-sqlite-utils \
         jq \
+        coreutils \
         grep \
         file \
         fd \
@@ -47,7 +48,7 @@ RUN apk update && \
         && rm -rf /var/cache/apk/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-RUN ln -s /usr/local/bin/uv /usr/local/bin/uvx
+RUN ln -sf /usr/local/bin/uv /usr/local/bin/uvx
 
 ENV UV_PYTHON_INSTALL_DIR=/usr/local/share/uv/python
 # This allows local <project>/.venv to be used in non-docker env for devel
@@ -59,8 +60,8 @@ ENV UV_PROJECT_ENVIRONMENT=.venv-docker
 
 # Install Python via uv and expose it on PATH, with tools
 RUN uv python install 3.14.4 \
-      && ln -s "$(uv python find 3.14.4)" /usr/local/bin/python3 \
-      && ln -s "$(uv python find 3.14.4)" /usr/local/bin/python
+      && ln -sf "$(uv python find 3.14.4)" /usr/local/bin/python3 \
+      && ln -sf "$(uv python find 3.14.4)" /usr/local/bin/python
 
 # Prepend extension binaries (host-mounted via /pi-agent). Security: binaries
 # here can shadow any command; no privilege escalation (--cap-drop=ALL,
@@ -77,7 +78,7 @@ ENV HOME=/home/piuser
 #   because --cap-drop=ALL and --no-new-privileges block privilege escalation.
 RUN adduser piuser /home/piuser -u 501 -s /bin/zsh -D \
     && mkdir -p /home/piuser/.ssh /home/piuser/.pi \
-    && ln -s /pi-agent /home/piuser/.pi/agent \
+    && ln -sf /pi-agent /home/piuser/.pi/agent \
     && chmod 1700 /home/piuser \
     && chmod 700 /home/piuser/.ssh \
     && chmod a+w /etc/passwd \
@@ -102,6 +103,30 @@ alias ls="ls -Ah --color"
 alias vi="vim"
 alias less="/usr/share/vim/vim92/macros/less.sh"
 alias lessx="/usr/share/vim/vim92/macros/less.sh"
+
+HISTFILE=/pi-agent/.local/state/zsh/.zsh_history
+SAVEHIST=5000
+HISTSIZE=5000
+setopt APPEND_HISTORY
+setopt INC_APPEND_HISTORY
+setopt SHARE_HISTORY
+## # Cleanup
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_REDUCE_BLANKS
+setopt HIST_IGNORE_SPACE
+setopt HIST_EXPIRE_DUPS_FIRST
+## # Metadata
+setopt EXTENDED_HISTORY
+## # Safety
+setopt HIST_FCNTL_LOCK
+
+setopt autocd
+setopt extendedglob
+setopt notify
+setopt nomatch
+setopt completealiases
+
 
 export EDITOR=vim
 export VISUAL=emacs
@@ -133,7 +158,7 @@ function zle-line-init {
 }
 zle -N zle-line-init
 
-PROMPT='[%{$fg[cyan]%}${MODE}%{$reset_color%}] %~ %# '
+PROMPT='[%{$fg[cyan]%}${MODE}%{$reset_color%}] (%m) %~ %# '
 
 if [ -f "$PI_CODING_AGENT_DIR/.pirc" ]; then
   . "$PI_CODING_AGENT_DIR/.pirc"
