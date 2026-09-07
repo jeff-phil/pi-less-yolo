@@ -37,6 +37,7 @@ mkdir -p "${HOME}/.pi/agent"
 #                               it from $HOME, sidestepping any HOME-resolution
 #                               issues inside the container.
 DOCKER_FLAGS=(
+  "--pid=host"  # for fff frecency and history db that keys locks based on pid
   "--rm"
   "--user" "$(id -u):$(id -g)"
   "--cap-drop=ALL"

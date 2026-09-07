@@ -22,6 +22,7 @@ RUN apk update && \
         sqlite sqlite-libs py3-sqlite-utils \
         jq \
         coreutils \
+        procps \
         grep \
         file \
         fd \
@@ -44,7 +45,10 @@ RUN apk update && \
         glow \
         fzf \
         netcat-openbsd \
+        socat \
         eslint \
+        ffmpeg-9.0-static \
+        imagemagick-7-static \
         && rm -rf /var/cache/apk/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -82,7 +86,9 @@ RUN adduser piuser /home/piuser -u 501 -s /bin/zsh -D \
     && chmod 1700 /home/piuser \
     && chmod 700 /home/piuser/.ssh \
     && chmod a+w /etc/passwd \
-    && touch /home/piuser/.ssh/known_hosts \
+    && curl -L https://api.github.com/meta | \
+       jq -r '.ssh_keys | .[]' | \
+       sed -e 's/^/github.com /' >> /home/piuser/.ssh/known_hosts \
     && chmod 644 /home/piuser/.ssh/known_hosts 
 
 # Fix global npmrc from apk package if still set, removes warnings
@@ -103,8 +109,41 @@ alias ls="ls -Ah --color"
 alias vi="vim"
 alias less="/usr/share/vim/vim92/macros/less.sh"
 alias lessx="/usr/share/vim/vim92/macros/less.sh"
+# since using docker --pid=host, alias ps to just show current container pids
+alias ps="ps -ww -eo user,pid,ppid,cgroup,cmd | awk '\$4 == \"-\" {\$4=\"\"; print \$0}' | tr -s ' '"
 
-HISTFILE=/pi-agent/.local/state/zsh/.zsh_history
+## NOTE: these two won't show if new pids created, use the watch below...
+##       and use `/bin/ps' because ps aliased above.
+top_host() {
+  pids=$(/bin/ps -ww -eo pid,cgroup | awk '$2 == "-" {print $1}' \
+         | head -200 | tr '\n' ',' | sed 's/,$//')
+  if [ -n "$pids" ]; then
+    top -p "$pids"
+  else
+    echo "No host cgroup processes found"
+  fi
+}
+htop_host() {
+  pids=$(/bin/ps -ww -eo pid,cgroup | awk '$2 == "-" {print $1}' \
+          | head -200 | tr '\n' ',' | sed 's/,$//')
+  if [ -n "$pids" ]; then
+    htop -p "$pids"
+  else
+    echo "No host cgroup processes found"
+  fi
+}
+## Should show new pids coming and going, but not memory, etc.
+watch_ps() {
+  watch -n 1 '/bin/ps -ww -eo user,pid,ppid,cgroup,cmd \
+    | awk '\''$4 == "-" && !/watch|ps|awk|tr/ {$4=""; print $0}'\'' \
+    | tr -s " "'
+}
+
+if [[ ! -d /pi-agent/.local/state/zsh ]]; then
+    HISTFILE=$HOME/.zsh_history
+else
+    HISTFILE=/pi-agent/.local/state/zsh/.zsh_history
+fi
 SAVEHIST=5000
 HISTSIZE=5000
 setopt APPEND_HISTORY
@@ -131,8 +170,8 @@ setopt completealiases
 export EDITOR=vim
 export VISUAL=emacs
 
-export LANG=C.UTF-8
-export LC_ALL=C.UTF-8
+export LANG=en_US.UTF-8
+unset LC_ALL
 
 export PATH=$PATH:/home/piuser/go/bin:/home/piuser/.local/bin:
 
@@ -200,6 +239,8 @@ uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
 cargo install htmlq
 mv /home/piuser/.cargo/bin/* /usr/local/bin 2>/dev/null
 rm -rf /home/piuser/.cache /home/piuser/go/pkg /home/piuser/.cargo 2>/dev/null
+# rtk
+curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
 #npm install playwright && npx playwright install chromium --only-shell
 find . -name '.git' -type d -prune -exec rm -rf {} \;
 chown -R 501 /home/piuser
